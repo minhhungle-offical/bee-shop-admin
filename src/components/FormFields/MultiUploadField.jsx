@@ -8,7 +8,7 @@ export function MultiUploadField({
   control,
   label = "Upload hình ảnh",
   aspectRatio = "16/9",
-  maxFiles = 5,
+  maxFiles = 6,
   disabled = false,
 }) {
   const [previews, setPreviews] = useState([]);
@@ -62,7 +62,7 @@ export function MultiUploadField({
           {label}
         </label>
       )}
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {previews.map((p, idx) => (
           <div
             key={idx}

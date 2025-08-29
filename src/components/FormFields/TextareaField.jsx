@@ -9,7 +9,7 @@ export function TextareaField({
   defaultValue,
   placeholder,
   disabled = false,
-  rows = 4,
+  rows = 5,
   ...rest
 }) {
   const {
