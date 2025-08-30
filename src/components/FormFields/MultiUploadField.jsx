@@ -1,4 +1,4 @@
-import { useController } from "react-hook-form";
+import { useController, useFormContext } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { FiUploadCloud, FiX } from "react-icons/fi";
 import { toast } from "react-toastify";
@@ -11,19 +11,21 @@ export function MultiUploadField({
   maxFiles = 6,
   disabled = false,
 }) {
+  const { setValue, getValues } = useFormContext();
   const [previews, setPreviews] = useState([]);
 
   const {
-    field: { value = [], onChange },
+    field: { value = { data: [], removeList: [] }, onChange },
     fieldState: { error },
   } = useController({ name, control });
 
+  // load initial data
   useEffect(() => {
-    if (value.length && previews.length === 0) {
-      const initialPreviews = value.map((v) =>
-        typeof v === "string"
-          ? { url: v, file: null }
-          : { file: v, url: URL.createObjectURL(v) }
+    if (value?.data?.length && previews.length === 0) {
+      const initialPreviews = value.data.map((i) =>
+        typeof i === "string"
+          ? { url: i, file: null, publicId: i.publicId || undefined }
+          : { file: i, url: URL.createObjectURL(i) }
       );
       setPreviews(initialPreviews);
     }
@@ -43,16 +45,35 @@ export function MultiUploadField({
       file,
       url: URL.createObjectURL(file),
     }));
+
     const updatedPreviews = [...previews, ...newPreviews];
     setPreviews(updatedPreviews);
-    onChange(updatedPreviews.map((p) => p.file || p.url));
+
+    onChange({
+      ...value,
+      data: updatedPreviews.map((p) => p.file || p.url),
+    });
   };
 
   const handleRemove = (index) => {
     const updatedPreviews = [...previews];
+    const removed = updatedPreviews[index];
+
     updatedPreviews.splice(index, 1);
     setPreviews(updatedPreviews);
-    onChange(updatedPreviews.map((p) => p.file || p.url));
+
+    if (!removed.file && removed.url) {
+      const currentRemoveList = getValues(`${name}.removeList`) || [];
+      setValue(`${name}.removeList`, [
+        ...currentRemoveList,
+        removed.publicId || removed.url,
+      ]);
+    }
+
+    onChange({
+      ...value,
+      data: updatedPreviews.map((p) => p.file || p.url),
+    });
   };
 
   return (
