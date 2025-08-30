@@ -1,80 +1,83 @@
-import { useController, useFormContext } from "react-hook-form";
-import { useEffect, useState } from "react";
-import { FiUploadCloud, FiX } from "react-icons/fi";
-import { toast } from "react-toastify";
+import { useController, useFormContext } from 'react-hook-form'
+import { useEffect, useState } from 'react'
+import { FiUploadCloud, FiX } from 'react-icons/fi'
+import { toast } from 'react-toastify'
 
 export function MultiUploadField({
   name,
   control,
-  label = "Upload hình ảnh",
-  aspectRatio = "16/9",
+  label = 'Upload hình ảnh',
+  aspectRatio = '16/9',
   maxFiles = 6,
   disabled = false,
 }) {
-  const { setValue, getValues } = useFormContext();
-  const [previews, setPreviews] = useState([]);
+  const { setValue, getValues } = useFormContext()
+  const [previews, setPreviews] = useState([])
 
   const {
-    field: { value = { data: [], removeList: [] }, onChange },
+    field: { value, onChange },
     fieldState: { error },
-  } = useController({ name, control });
+  } = useController({ name, control })
 
-  // load initial data
   useEffect(() => {
     if (value?.data?.length && previews.length === 0) {
       const initialPreviews = value.data.map((i) =>
-        typeof i === "string"
-          ? { url: i, file: null, publicId: i.publicId || undefined }
-          : { file: i, url: URL.createObjectURL(i) }
-      );
-      setPreviews(initialPreviews);
+        i instanceof File
+          ? { file: i, url: URL.createObjectURL(i) }
+          : { url: i.url, publicId: i.publicId },
+      )
+      setPreviews(initialPreviews)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, [value, previews.length])
 
   const handleChange = (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return toast.error("Không tìm thấy file");
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return toast.error('Không tìm thấy file')
 
     if (previews.length + files.length > maxFiles) {
-      toast.error(`Chỉ được upload tối đa ${maxFiles} ảnh`);
-      return;
+      toast.error(`Chỉ được upload tối đa ${maxFiles} ảnh`)
+      return
     }
 
     const newPreviews = files.map((file) => ({
       file,
       url: URL.createObjectURL(file),
-    }));
+    }))
 
-    const updatedPreviews = [...previews, ...newPreviews];
-    setPreviews(updatedPreviews);
+    const updatedPreviews = [...previews, ...newPreviews]
+    setPreviews(updatedPreviews)
 
     onChange({
       ...value,
-      data: updatedPreviews.map((p) => p.file || p.url),
-    });
-  };
+      data: [
+        ...previews.filter((p) => p.publicId).map((p) => ({ url: p.url, publicId: p.publicId })), // giữ ảnh cũ
+        ...updatedPreviews.filter((p) => p.file).map((p) => p.file), // thêm file mới
+      ],
+    })
+  }
 
   const handleRemove = (index) => {
-    const updatedPreviews = [...previews];
-    const removed = updatedPreviews[index];
+    const updatedPreviews = [...previews]
+    const removed = updatedPreviews[index]
 
-    updatedPreviews.splice(index, 1);
-    setPreviews(updatedPreviews);
+    updatedPreviews.splice(index, 1)
+    setPreviews(updatedPreviews)
 
-    if (!removed.file && removed.url) {
-      const currentRemoveList = getValues(`${name}.removeList`) || [];
-      setValue(`${name}.removeList`, [
-        ...currentRemoveList,
-        removed.publicId || removed.url,
-      ]);
+    if (removed.publicId) {
+      const currentRemoveList = getValues(`${name}.removeList`) || []
+      setValue(`${name}.removeList`, [...currentRemoveList, removed.publicId])
     }
 
     onChange({
       ...value,
-      data: updatedPreviews.map((p) => p.file || p.url),
-    });
-  };
+      data: [
+        ...updatedPreviews
+          .filter((p) => p.publicId)
+          .map((p) => ({ url: p.url, publicId: p.publicId })),
+        ...updatedPreviews.filter((p) => p.file).map((p) => p.file),
+      ],
+    })
+  }
 
   return (
     <div className="space-y-2">
@@ -88,15 +91,11 @@ export function MultiUploadField({
           <div
             key={idx}
             className={`relative rounded-md overflow-hidden border ${
-              error ? "border-red-500" : "border-gray-300"
+              error ? 'border-red-500' : 'border-gray-300'
             }`}
             style={{ aspectRatio }}
           >
-            <img
-              src={p.url}
-              alt={`preview-${idx}`}
-              className="object-cover w-full h-full"
-            />
+            <img src={p.url} alt={`preview-${idx}`} className="object-cover w-full h-full" />
             <button
               type="button"
               onClick={() => handleRemove(idx)}
@@ -109,7 +108,7 @@ export function MultiUploadField({
 
         {previews.length < maxFiles && !disabled && (
           <label
-            className={`flex items-center justify-center rounded-md overflow-hidden border border-gray-300 bg-gray-100 cursor-pointer hover:bg-gray-200`}
+            className="flex items-center justify-center rounded-md overflow-hidden border border-gray-300 bg-gray-100 cursor-pointer hover:bg-gray-200"
             style={{ aspectRatio }}
           >
             <FiUploadCloud className="text-gray-400" size={48} />
@@ -126,5 +125,5 @@ export function MultiUploadField({
 
       {error && <p className="text-xs text-red-600">{error.message}</p>}
     </div>
-  );
+  )
 }

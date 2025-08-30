@@ -5,6 +5,7 @@ import { AddEditProductForm } from '../components/AddEditProductForm'
 import { productApi } from '@/api/productApi'
 import { toast } from 'react-toastify'
 import { ProductList } from '../components/ProductList'
+import { SelectField } from '@/components/FormFields/SelectField'
 
 export default function ProductPage() {
   const [showAddEdit, setShowAddEdit] = useState(false)
@@ -16,24 +17,26 @@ export default function ProductPage() {
     total: 0,
     totalPage: 0,
   })
-  const [filter, SelectFilter] = useState({ page: 1, limit: 5 })
+  const [filter, setFilter] = useState({ page: 1, limit: 5 })
   const [pending, setPending] = useState(false)
   const [removeItem, setRemoveItem] = useState(false)
   const [productList, setProductList] = useState(false)
 
+  const fetchData = async (filter) => {
+    setLoading(true)
+    try {
+      const { data, pagination } = await productApi.getAll(filter)
+      setProductList(data)
+      setPagination(pagination)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    ;(async () => {
-      setLoading(true)
-      try {
-        const { data, pagination } = await productApi.getAll(filter)
-        setProductList(data)
-        setPagination(pagination)
-      } catch (error) {
-        console.error(error)
-      } finally {
-        setLoading(false)
-      }
-    })()
+    fetchData(filter)
   }, [filter])
 
   const handleClose = () => {
@@ -47,13 +50,31 @@ export default function ProductPage() {
     setSelectedItem(null)
   }
 
+  const handleEdit = (data) => {
+    setShowAddEdit(true)
+    setSelectedItem(data)
+  }
+
+  const handleRemove = async (id) => {
+    setPending(true)
+    try {
+      await productApi.remove(id)
+      fetchData()
+      handleClose()
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setPending(false)
+    }
+  }
+
   const handleSubmit = async (formData) => {
     setPending(true)
     try {
       if (selectedItem) {
         await productApi.update(selectedItem._id, formData)
       } else await productApi.create(formData)
-
+      fetchData(filter)
       handleClose()
     } catch (error) {
       console.error(error)
@@ -61,6 +82,10 @@ export default function ProductPage() {
     } finally {
       setPending(false)
     }
+  }
+
+  const handleFilterChange = (newFilter) => {
+    setFilter(newFilter)
   }
 
   return (
@@ -77,7 +102,15 @@ export default function ProductPage() {
       </div>
 
       <div>
-        <ProductList data={productList} />
+        <ProductList
+          data={productList}
+          onEdit={handleEdit}
+          loading={loading}
+          filter={filter}
+          pagination={pagination}
+          onFilterChange={handleFilterChange}
+          onRemove={(item) => setRemoveItem(item)}
+        />
       </div>
 
       <Dialog open={showAddEdit} onClose={handleClose}>
@@ -100,13 +133,13 @@ export default function ProductPage() {
           <div className="flex justify-end gap-3">
             <button
               onClick={handleClose}
-              className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
+              className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 cursor-pointer"
             >
               Hủy
             </button>
             <button
-              //   onClick={() => handleRemove(removeItem._id)}
-              className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+              onClick={() => handleRemove(removeItem._id)}
+              className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 cursor-pointer"
             >
               Xác nhận
             </button>

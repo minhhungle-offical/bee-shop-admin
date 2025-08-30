@@ -15,6 +15,7 @@ export const AddEditProductForm = ({ data, loading, onSubmit }) => {
             data: data.images || [],
             removeList: [],
           },
+          category: data.category._id,
         }
       : {
           code: '',
@@ -33,8 +34,8 @@ export const AddEditProductForm = ({ data, loading, onSubmit }) => {
   const categoryList = categoryStore((state) => state.categoryList)
 
   const handleFormSubmit = handleSubmit((values) => {
+    console.log({ values })
     const form = new FormData()
-    console.log(values)
 
     Object.entries(values).forEach(([key, val]) => {
       if (key !== 'images') {
